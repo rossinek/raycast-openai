@@ -11,14 +11,36 @@
   "license": "MIT",
   "commands": [
     {
-      "name": "index",
-      "title": "Submit Form",
-      "description": "Template for submitting a form",
+      "name": "translate",
+      "title": "Translate with GPT",
+      "description": "A simple utility to translate text with GPT",
+      "mode": "view"
+    },
+    {
+      "name": "translate-selection",
+      "title": "Translate selected text with GPT",
+      "description": "Shortcut to translate with GPT",
+      "mode": "no-view"
+    },
+    {
+      "name": "generic-assistant",
+      "title": "AMA with GPT (chat)",
+      "description": "A generic chat with GPT",
       "mode": "view"
     }
   ],
+  "preferences": [
+    {
+      "name": "apiKey",
+      "description": "OpenAI API key",
+      "type": "password",
+      "required": true,
+      "title": "OpenAI API key"
+    }
+  ],
   "dependencies": {
-    "@raycast/api": "^1.48.7"
+    "@raycast/api": "^1.48.7",
+    "openai": "^3.2.1"
   },
   "devDependencies": {
     "@types/node": "18.8.3",
