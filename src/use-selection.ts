@@ -8,7 +8,7 @@ export default async () => {
   await delay(100);
   execSync(`osascript ${scriptPath}`);
   await delay(100);
-  const text = await Clipboard.readText();
+  const input = await Clipboard.readText();
   await Clipboard.copy(previousClipboard);
-  launchCommand({ name: 'translate', type: LaunchType.UserInitiated, context: { text } });
+  launchCommand({ name: 'command-picker', type: LaunchType.UserInitiated, context: { input } });
 }

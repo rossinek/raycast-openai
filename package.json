@@ -11,20 +11,26 @@
   "license": "MIT",
   "commands": [
     {
-      "name": "translate",
-      "title": "Translate with GPT",
-      "description": "A simple utility to translate text with GPT",
+      "name": "generic-completion",
+      "title": "GPT Generic Prompt",
+      "description": "Write prompt for GPT from scratch",
       "mode": "view"
     },
     {
-      "name": "translate-selection",
-      "title": "Translate selected text with GPT",
-      "description": "Shortcut to translate with GPT",
+      "name": "use-selection",
+      "title": "Use Selection",
+      "description": "Use currently selected text from front-most application in other commands",
       "mode": "no-view"
     },
     {
-      "name": "generic-assistant",
-      "title": "AMA with GPT (chat)",
+      "name": "command-picker",
+      "title": "Pick a Command",
+      "description": "Used by \"Use Selection\" command to pick what to do with the current selection",
+      "mode": "view"
+    },
+    {
+      "name": "generic-chat",
+      "title": "GPT Generic Chat",
       "description": "A generic chat with GPT",
       "mode": "view"
     }
@@ -39,18 +45,18 @@
     }
   ],
   "dependencies": {
-    "@raycast/api": "^1.48.7",
+    "@raycast/api": "^1.48.9",
     "openai": "^3.2.1"
   },
   "devDependencies": {
     "@types/node": "18.8.3",
     "@types/react": "18.0.9",
-    "@typescript-eslint/eslint-plugin": "^5.0.0",
-    "@typescript-eslint/parser": "^5.0.0",
-    "eslint": "^7.32.0",
-    "eslint-config-prettier": "^8.3.0",
-    "prettier": "^2.5.1",
-    "typescript": "^4.4.3"
+    "@typescript-eslint/eslint-plugin": "^5.57.0",
+    "@typescript-eslint/parser": "^5.57.0",
+    "eslint": "^8.36.0",
+    "eslint-config-prettier": "^8.8.0",
+    "prettier": "^2.8.7",
+    "typescript": "^5.0.2"
   },
   "scripts": {
     "build": "ray build -e dist",
