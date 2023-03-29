@@ -2,7 +2,7 @@
   "$schema": "https://www.raycast.com/schemas/extension.json",
   "name": "hex",
   "title": "hex",
-  "description": "UI for GPT helpers",
+  "description": "Simple UI for OpenAI completion and chat API. It allows to use OpenAI API with Raycast commands. Settings can be saved as presets and can be easily used with the 'Use Selection' command or with the 'Pick a Command' command.",
   "icon": "command-icon.png",
   "author": "rosickey",
   "categories": [
@@ -11,21 +11,21 @@
   "license": "MIT",
   "commands": [
     {
-      "name": "generic-completion",
-      "title": "GPT Generic Prompt",
-      "description": "Write prompt for GPT from scratch",
-      "mode": "view"
-    },
-    {
       "name": "use-selection",
-      "title": "Use Selection",
-      "description": "Use currently selected text from front-most application in other commands",
+      "title": "GPT Use Selection",
+      "description": "Use currently selected text from front-most application in other commands. It saves current selection, open a Command Picker and prefills input for the selected command with the selection",
       "mode": "no-view"
     },
     {
       "name": "command-picker",
-      "title": "Pick a Command",
-      "description": "Used by \"Use Selection\" command to pick what to do with the current selection",
+      "title": "GPT Command Picker",
+      "description": "Can be used to use saved completion or chat presets. It is also used by \"Use Selection\" command to pick what to do with the current selection.",
+      "mode": "view"
+    },
+    {
+      "name": "generic-completion",
+      "title": "GPT Generic Prompt",
+      "description": "Write prompt for GPT from scratch",
       "mode": "view"
     },
     {
