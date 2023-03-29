@@ -23,15 +23,22 @@ type BaseBotSettings = {
 
 export type BotType = "chat" | "completion";
 
+export const CHAT_MODELS = ["gpt-4", "gpt-4-32k", "gpt-3.5-turbo"] as const;
+export type ChatModel = (typeof CHAT_MODELS)[number];
+
 type ChatBotSettings = BaseBotSettings & {
   type: "chat";
   messages: ChatCompletionRequestMessage[];
+  model?: ChatModel;
 };
+
+export const COMPLETION_MODELS = ["gpt-4", "gpt-4-32k", "gpt-3.5-turbo", "text-davinci-003"] as const;
+export type CompletionModel = (typeof COMPLETION_MODELS)[number];
 
 type CompletionBotSettings = BaseBotSettings & {
   type: "completion";
   prompt: string; // must contain place for user input `{{ input }}`
-  model?: "gpt-3.5-turbo" | "text-davinci-003";
+  model?: CompletionModel;
 };
 
 export type BotSettings<Type extends BotType = BotType> = (ChatBotSettings | CompletionBotSettings) & { type: Type };
@@ -40,6 +47,7 @@ export const getChatBotDefaults = (): BotSettings<"chat"> => {
   const { userName, assistantName } = getUserPreferences();
   return {
     type: "chat",
+    model: "gpt-3.5-turbo",
     temperature: 0.7,
     messages: [
       {

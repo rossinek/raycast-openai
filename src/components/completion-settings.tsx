@@ -1,6 +1,6 @@
 import { Form, ActionPanel, Action, useNavigation } from "@raycast/api";
 import { useTextInputValidation } from "../hooks/use-validation";
-import { getCompletionBotDefaults, BotSettings } from "../utils/settings";
+import { getCompletionBotDefaults, BotSettings, CompletionModel, COMPLETION_MODELS } from "../utils/settings";
 import { setActiveState, ActiveState } from "../utils/active-settings";
 import { useState } from "react";
 import PresetSettings from "./preset-settings";
@@ -114,10 +114,11 @@ export default ({ state }: { state: ActiveState<"completion"> }) => {
         id="model"
         title="Model"
         value={model.model}
-        onChange={(value) => setModel({ ...model, model: value as "gpt-3.5-turbo" | "text-davinci-003" })}
+        onChange={(value) => setModel({ ...model, model: value as CompletionModel })}
       >
-        <Form.Dropdown.Item value="text-davinci-003" title="text-davinci-003" />
-        <Form.Dropdown.Item value="gpt-3.5-turbo" title="gpt-3.5-turbo" />
+        {COMPLETION_MODELS.map((model) => (
+          <Form.Dropdown.Item key={model} value={model} title={model} />
+        ))}
       </Form.Dropdown>
 
       <Form.TextArea

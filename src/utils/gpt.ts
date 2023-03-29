@@ -22,7 +22,7 @@ export const createCompletionBot = () => {
       : `${settings.prompt}\n\n\n${text}`;
 
     const defaults = getCompletionBotDefaults();
-    const model = settings.model || defaults.model;
+    const model = settings.model || defaults.model || "gpt-3.5-turbo";
     const temperature = settings.temperature ?? defaults.temperature;
     const max_tokens = settings.maxTokens ?? defaults.maxTokens;
 
@@ -39,7 +39,7 @@ export const createCompletionBot = () => {
       return response.data.choices?.[0]?.text?.trim() || "(no response)";
     }
     const payload = {
-      model: "gpt-3.5-turbo",
+      model,
       temperature,
       max_tokens,
       messages: [
@@ -71,7 +71,7 @@ export const createChatBot = () => {
 
   const send = async (message: string, settings: BotSettings<"chat">) => {
     const payload: CreateChatCompletionRequest = {
-      model: "gpt-3.5-turbo",
+      model: settings.model || defaults.model || "gpt-3.5-turbo",
       temperature: settings.temperature ?? defaults.temperature,
       max_tokens: settings.maxTokens ?? defaults.maxTokens,
       messages: [

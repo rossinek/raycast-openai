@@ -1,6 +1,6 @@
 import { Form, ActionPanel, Action, useNavigation } from "@raycast/api";
 import { useTextInputValidation } from "../hooks/use-validation";
-import { getChatBotDefaults, BotSettings } from "../utils/settings";
+import { getChatBotDefaults, BotSettings, ChatModel, CHAT_MODELS } from "../utils/settings";
 import { setActiveState, ActiveState } from "../utils/active-settings";
 import { Fragment, useState } from "react";
 import PresetSettings from "./preset-settings";
@@ -12,6 +12,7 @@ type MessageWithoutSystem = Omit<ChatCompletionRequestMessage, "role"> & {
 };
 
 type FormModel = {
+  model: ChatModel;
   systemMessage: string;
   messages: MessageWithoutSystem[];
   temperature: string;
@@ -21,6 +22,7 @@ type FormModel = {
 const settingsToModel = (s: BotSettings<"chat">): FormModel => {
   const defaults = getChatBotDefaults();
   return {
+    model: s.model || defaults.model || "gpt-3.5-turbo",
     systemMessage: s.messages.find((m) => m.role === "system")?.content || "",
     messages: s.messages.filter((m) => m.role !== "system") as MessageWithoutSystem[],
     temperature: `${s.temperature ?? defaults.temperature}`,
@@ -32,14 +34,14 @@ export default ({ state }: { state: ActiveState<"chat"> }) => {
   const { pop, push } = useNavigation();
 
   const [activePreset, updateActivePreset] = useState(state.preset);
-  const [model, setModel] = useState<FormModel>(settingsToModel(state.settings));
+  const [formModel, setFormModel] = useState<FormModel>(settingsToModel(state.settings));
 
   const currentMessages = [
     {
       role: "system" as const,
-      content: model.systemMessage.trim(),
+      content: formModel.systemMessage.trim(),
     },
-    ...model.messages.map((message) => ({
+    ...formModel.messages.map((message) => ({
       ...message,
       content: message.content.trim(),
     })),
@@ -47,9 +49,10 @@ export default ({ state }: { state: ActiveState<"chat"> }) => {
 
   const currentSettings: BotSettings<"chat"> = {
     ...state.settings,
+    model: formModel.model,
     messages: currentMessages,
-    temperature: model.temperature ? +model.temperature : undefined,
-    maxTokens: model.maxTokens ? +model.maxTokens : undefined,
+    temperature: formModel.temperature ? +formModel.temperature : undefined,
+    maxTokens: formModel.maxTokens ? +formModel.maxTokens : undefined,
   };
 
   const hasPresetChanges =
@@ -96,16 +99,16 @@ export default ({ state }: { state: ActiveState<"chat"> }) => {
 
   const onRoleChange = (index: number) => (_role: string) => {
     const role = _role as MessageWithoutSystem["role"];
-    setModel({
-      ...model,
-      messages: model.messages.map((m, i) => (i === index ? { ...m, role } : m)),
+    setFormModel({
+      ...formModel,
+      messages: formModel.messages.map((m, i) => (i === index ? { ...m, role } : m)),
     });
   };
 
   const onContentChange = (index: number) => (content: string) => {
-    setModel({
-      ...model,
-      messages: model.messages.map((m, i) => (i === index ? { ...m, content } : m)),
+    setFormModel({
+      ...formModel,
+      messages: formModel.messages.map((m, i) => (i === index ? { ...m, content } : m)),
     });
   };
 
@@ -130,15 +133,26 @@ export default ({ state }: { state: ActiveState<"chat"> }) => {
         </>
       )}
 
+      <Form.Dropdown
+        id="model"
+        title="Model"
+        value={formModel.model}
+        onChange={(value) => setFormModel({ ...formModel, model: value as ChatModel })}
+      >
+        {CHAT_MODELS.map((model) => (
+          <Form.Dropdown.Item key={model} value={model} title={model} />
+        ))}
+      </Form.Dropdown>
+
       <Form.TextArea
         id="systemMessage"
         title="System message"
-        value={model.systemMessage}
+        value={formModel.systemMessage}
         placeholder="No system message"
-        onChange={(value) => setModel({ ...model, systemMessage: value })}
+        onChange={(value) => setFormModel({ ...formModel, systemMessage: value })}
       />
 
-      {model.messages.map((message, index) => (
+      {formModel.messages.map((message, index) => (
         <Fragment key={`m_${index}`}>
           <Form.Description text="–––" />
           <Form.Dropdown id={`_role_${index}`} title="Role" value={message.role} onChange={onRoleChange(index)}>
@@ -161,11 +175,11 @@ export default ({ state }: { state: ActiveState<"chat"> }) => {
         id="temperature"
         title="Temperature"
         info="What sampling temperature to use, between 0 and 2. Higher values like 0.8 will make the output more random, while lower values like 0.2 will make it more focused and deterministic."
-        value={`${model.temperature}`}
+        value={`${formModel.temperature}`}
         placeholder={`${defaults.temperature}`}
         {...vTemperature.attrs}
         onChange={(value) => {
-          setModel({ ...model, temperature: value });
+          setFormModel({ ...formModel, temperature: value });
           vTemperature.attrs.onChange?.(value);
         }}
       />
@@ -173,11 +187,11 @@ export default ({ state }: { state: ActiveState<"chat"> }) => {
       <Form.TextField
         id="maxTokens"
         title="Max tokens"
-        value={`${model.maxTokens}`}
+        value={`${formModel.maxTokens}`}
         placeholder="(no limit)"
         {...vMaxTokens.attrs}
         onChange={(value) => {
-          setModel({ ...model, maxTokens: value });
+          setFormModel({ ...formModel, maxTokens: value });
           vMaxTokens.attrs.onChange?.(value);
         }}
       />
