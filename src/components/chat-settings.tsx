@@ -1,6 +1,6 @@
 import { Form, ActionPanel, Action, useNavigation } from "@raycast/api";
 import { useTextInputValidation } from "../hooks/use-validation";
-import { completionBotDefaults, BotSettings } from "../utils/settings";
+import { getChatBotDefaults, BotSettings } from "../utils/settings";
 import { setActiveState, ActiveState } from "../utils/active-settings";
 import { Fragment, useState } from "react";
 import PresetSettings from "./preset-settings";
@@ -18,12 +18,15 @@ type FormModel = {
   maxTokens?: string;
 };
 
-const settingsToModel = (s: BotSettings<"chat">): FormModel => ({
-  systemMessage: s.messages.find((m) => m.role === "system")?.content || "",
-  messages: s.messages.filter((m) => m.role !== "system") as MessageWithoutSystem[],
-  temperature: `${s.temperature ?? completionBotDefaults.temperature}`,
-  maxTokens: `${s.maxTokens || completionBotDefaults.maxTokens || ""}`,
-});
+const settingsToModel = (s: BotSettings<"chat">): FormModel => {
+  const defaults = getChatBotDefaults();
+  return {
+    systemMessage: s.messages.find((m) => m.role === "system")?.content || "",
+    messages: s.messages.filter((m) => m.role !== "system") as MessageWithoutSystem[],
+    temperature: `${s.temperature ?? defaults.temperature}`,
+    maxTokens: `${s.maxTokens || defaults.maxTokens || ""}`,
+  };
+};
 
 export default ({ state }: { state: ActiveState<"chat"> }) => {
   const { pop, push } = useNavigation();
@@ -106,6 +109,8 @@ export default ({ state }: { state: ActiveState<"chat"> }) => {
     });
   };
 
+  const defaults = getChatBotDefaults();
+
   return (
     <Form
       actions={
@@ -155,8 +160,9 @@ export default ({ state }: { state: ActiveState<"chat"> }) => {
       <Form.TextField
         id="temperature"
         title="Temperature"
+        info="What sampling temperature to use, between 0 and 2. Higher values like 0.8 will make the output more random, while lower values like 0.2 will make it more focused and deterministic."
         value={`${model.temperature}`}
-        placeholder={`${completionBotDefaults.temperature}`}
+        placeholder={`${defaults.temperature}`}
         {...vTemperature.attrs}
         onChange={(value) => {
           setModel({ ...model, temperature: value });

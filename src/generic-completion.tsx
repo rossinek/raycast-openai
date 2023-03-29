@@ -1,8 +1,18 @@
-import { Form, ActionPanel, Action, LaunchProps, showToast, Icon, closeMainWindow, PopToRootType, useNavigation } from "@raycast/api";
+import {
+  Form,
+  ActionPanel,
+  Action,
+  LaunchProps,
+  showToast,
+  Icon,
+  closeMainWindow,
+  PopToRootType,
+  useNavigation,
+} from "@raycast/api";
 import { useEffect, useRef, useState } from "react";
 import CompletionSettings from "./components/completion-settings";
 import { useCompletionBot } from "./hooks/use-completion-bot";
-import { BotSettings, completionBotDefaults } from "./utils/settings";
+import { BotSettings, getCompletionBotDefaults } from "./utils/settings";
 import { ActiveState, getActiveState, setActiveState } from "./utils/active-settings";
 
 type FormModel = {
@@ -11,7 +21,7 @@ type FormModel = {
 
 export default ({
   launchContext,
-}: LaunchProps<{ launchContext: { state?: ActiveState<'completion'>; input?: string } }>) => {
+}: LaunchProps<{ launchContext: { state?: ActiveState<"completion">; input?: string } }>) => {
   const [isLoading, setIsLoading] = useState(false);
   const [inputText, setInputText] = useState(launchContext?.input || "");
 
@@ -23,7 +33,7 @@ export default ({
 
   const handleSubmit = async (values: FormModel) => {
     setIsLoading(true);
-    const { settings } = await getActiveState('completion');
+    const { settings } = await getActiveState("completion");
     await send(values.text, settings);
     setIsLoading(false);
     responseTextAreaRef.current?.focus();
@@ -31,8 +41,8 @@ export default ({
   };
 
   useEffect(() => {
-    const settings: BotSettings<'completion'> = launchContext?.state?.settings || completionBotDefaults;
-    setActiveState<'completion'>({ settings, preset: launchContext?.state?.preset });
+    const settings: BotSettings<"completion"> = launchContext?.state?.settings || getCompletionBotDefaults();
+    setActiveState<"completion">({ settings, preset: launchContext?.state?.preset });
     if (launchContext?.input) {
       handleSubmit({ text: launchContext.input });
     }
@@ -45,7 +55,7 @@ export default ({
   };
 
   const openSettings = async () => {
-    const state = await getActiveState('completion');
+    const state = await getActiveState("completion");
     push(<CompletionSettings state={state} />);
   };
 

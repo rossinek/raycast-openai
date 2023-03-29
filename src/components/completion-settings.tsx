@@ -1,10 +1,11 @@
 import { Form, ActionPanel, Action, useNavigation } from "@raycast/api";
 import { useTextInputValidation } from "../hooks/use-validation";
-import { completionBotDefaults, BotSettings } from "../utils/settings";
+import { getCompletionBotDefaults, BotSettings } from "../utils/settings";
 import { setActiveState, ActiveState } from "../utils/active-settings";
 import { useState } from "react";
 import PresetSettings from "./preset-settings";
 import { BotPreset, createPreset as _createPreset, updatePreset as _updatePreset } from "../utils/presets";
+import { hasInputPlaceholder } from "../utils/gpt";
 
 type FormModel = {
   model: BotSettings<"completion">["model"];
@@ -13,12 +14,15 @@ type FormModel = {
   maxTokens?: string;
 };
 
-const settingsToModel = (s: BotSettings<"completion">): FormModel => ({
-  model: s.model || completionBotDefaults.model,
-  prompt: s.prompt || completionBotDefaults.prompt,
-  temperature: `${s.temperature ?? completionBotDefaults.temperature}`,
-  maxTokens: `${s.maxTokens || completionBotDefaults.maxTokens || ""}`,
-});
+const settingsToModel = (s: BotSettings<"completion">): FormModel => {
+  const defaults = getCompletionBotDefaults();
+  return {
+    model: s.model || defaults.model,
+    prompt: s.prompt || defaults.prompt,
+    temperature: `${s.temperature ?? defaults.temperature}`,
+    maxTokens: `${s.maxTokens || defaults.maxTokens || ""}`,
+  };
+};
 
 export default ({ state }: { state: ActiveState<"completion"> }) => {
   const { pop, push } = useNavigation();
@@ -55,7 +59,7 @@ export default ({ state }: { state: ActiveState<"completion"> }) => {
   };
 
   const vPrompt = useTextInputValidation((v: string) => {
-    return v.includes("{{ input }}") || "Prompt must include `{{ input }}`";
+    return hasInputPlaceholder(v) || "Prompt must include `{{ input }}` placeholder for the text to inject";
   });
 
   const vTemperature = useTextInputValidation((v: string) => isNumberInRange(v, 0, 2));
@@ -81,12 +85,18 @@ export default ({ state }: { state: ActiveState<"completion"> }) => {
     updateActivePreset(updatedPreset);
   };
 
+  const defaults = getCompletionBotDefaults();
+
   return (
     <Form
       actions={
         <ActionPanel>
           <Action.SubmitForm onSubmit={() => handleSubmit()} />
-          <Action title="Create new preset" onAction={createPreset} />
+          <Action
+            title="Create new preset"
+            onAction={createPreset}
+            shortcut={state.preset ? undefined : { modifiers: ["cmd"], key: "s" }}
+          />
           {!!state.preset && (
             <Action title="Update preset" shortcut={{ modifiers: ["cmd"], key: "s" }} onAction={updatePreset} />
           )}
@@ -113,8 +123,9 @@ export default ({ state }: { state: ActiveState<"completion"> }) => {
       <Form.TextArea
         id="prompt"
         title="Prompt"
+        info="The base for prompt. Must include `{{ input }}` placeholder for the text to inject."
         value={model.prompt}
-        placeholder={completionBotDefaults.prompt}
+        placeholder={defaults.prompt}
         {...vPrompt.attrs}
         onChange={(value) => {
           setModel({ ...model, prompt: value });
@@ -125,8 +136,9 @@ export default ({ state }: { state: ActiveState<"completion"> }) => {
       <Form.TextField
         id="temperature"
         title="Temperature"
+        info="What sampling temperature to use, between 0 and 2. Higher values like 0.8 will make the output more random, while lower values like 0.2 will make it more focused and deterministic."
         value={`${model.temperature}`}
-        placeholder={`${completionBotDefaults.temperature}`}
+        placeholder={`${defaults.temperature}`}
         {...vTemperature.attrs}
         onChange={(value) => {
           setModel({ ...model, temperature: value });

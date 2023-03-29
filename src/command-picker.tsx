@@ -1,16 +1,17 @@
-import { launchCommand, LaunchType, Action, ActionPanel, List, LaunchProps, Icon } from "@raycast/api";
+import { launchCommand, LaunchType, Action, ActionPanel, List, LaunchProps, Icon, useNavigation } from "@raycast/api";
 import { useEffect, useState } from "react";
-import { BotPreset, readPresets, removePreset } from "./utils/presets";
-import { chatBotDefaults, completionBotDefaults } from "./utils/settings";
+import PresetSettings from "./components/preset-settings";
+import { BotPreset, readPresets, removePreset, updatePreset } from "./utils/presets";
+import { getChatBotDefaults, getCompletionBotDefaults } from "./utils/settings";
 
-const defaultPresets: BotPreset[] = [
+const getDefaultPresets = (): BotPreset[] => [
   {
     id: "__completion",
     name: "Generic Completion",
     createdAt: "-",
     updatedAt: "-",
     lastUsedAt: "-",
-    settings: completionBotDefaults,
+    settings: getCompletionBotDefaults(),
   },
   {
     id: "__chat",
@@ -18,7 +19,7 @@ const defaultPresets: BotPreset[] = [
     createdAt: "-",
     updatedAt: "-",
     lastUsedAt: "-",
-    settings: chatBotDefaults,
+    settings: getChatBotDefaults(),
   },
 ];
 
@@ -35,7 +36,7 @@ export default ({ launchContext }: LaunchProps<{ launchContext: { input?: string
 
   useEffect(() => {
     const filtered = items
-      .concat(defaultPresets)
+      .concat(getDefaultPresets())
       .filter((item) => item.name.toLocaleLowerCase().includes(searchText.toLocaleLowerCase()));
     const sorted = filtered.sort((a, b) => {
       if (a.lastUsedAt > b.lastUsedAt) return -1;
@@ -60,6 +61,17 @@ export default ({ launchContext }: LaunchProps<{ launchContext: { input?: string
     });
   };
 
+  const { push } = useNavigation();
+
+  const onActionRename = (preset: BotPreset) => {
+    const onSubmit = (payload: { name: string }) => {
+      const updatedPreset = updatePreset(preset.id, { name: payload.name });
+      const newItems = items.map((item) => (item.id === preset.id ? updatedPreset : item));
+      setItems(newItems);
+    };
+    push(<PresetSettings preset={preset} onSubmit={onSubmit} />);
+  };
+
   const onActionRemove = (preset: BotPreset) => {
     if (preset.id.startsWith("__")) return;
     const updatedPresets = removePreset(preset.id);
@@ -82,7 +94,7 @@ export default ({ launchContext }: LaunchProps<{ launchContext: { input?: string
           actions={
             <ActionPanel>
               <Action title="Run" onAction={() => onActionClick(item)} icon={Icon.Wand} />
-              <Action title="Edit name" onAction={() => undefined /* todo */} icon={Icon.Pencil} />
+              <Action title="Rename" onAction={() => onActionRename(item)} icon={Icon.Pencil} />
               <Action
                 title="Remove"
                 onAction={() => onActionRemove(item)}

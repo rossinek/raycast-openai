@@ -1,11 +1,12 @@
 import { Form, ActionPanel, Action, useNavigation } from "@raycast/api";
 import { useTextInputValidation } from "../hooks/use-validation";
+import { BotPreset } from "../utils/presets";
 
 type FormModel = {
   name: string;
 };
 
-export default (props: { onSubmit: (preset: { name: string }) => void }) => {
+export default (props: { preset?: BotPreset; onSubmit: (preset: { name: string }) => void }) => {
   const { pop } = useNavigation();
 
   const handleSubmit = (values: FormModel) => {
@@ -25,7 +26,13 @@ export default (props: { onSubmit: (preset: { name: string }) => void }) => {
         </ActionPanel>
       }
     >
-      <Form.TextField id="name" title="Preset Name" placeholder="Name" {...vName.attrs} />
+      <Form.TextField
+        id="name"
+        title="Preset Name"
+        defaultValue={props.preset?.name || ""}
+        placeholder="Name"
+        {...vName.attrs}
+      />
     </Form>
   );
 };

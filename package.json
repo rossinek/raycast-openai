@@ -42,6 +42,44 @@
       "type": "password",
       "required": true,
       "title": "OpenAI API key"
+    },
+    {
+      "name": "userName",
+      "title": "User name",
+      "default": "Human",
+      "description": "First name of chat user for more personalized experience",
+      "type": "textfield",
+      "required": false
+    },
+    {
+      "name": "assistantName",
+      "title": "Assistant name",
+      "default": "Hex",
+      "description": "First name of AI for more personalized experience",
+      "type": "textfield",
+      "required": false
+    },
+    {
+      "name": "backupFrequency",
+      "title": "Presets backup frequency",
+      "default": "0",
+      "description": "If you are experimenting a lot you may want to enable backups to be able to restore your presets manually",
+      "type": "dropdown",
+      "data": [
+        {
+          "title": "no backups",
+          "value": "0"
+        },
+        {
+          "title": "daily",
+          "value": "1"
+        },
+        {
+          "title": "weekly",
+          "value": "7"
+        }
+      ],
+      "required": true
     }
   ],
   "dependencies": {

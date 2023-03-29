@@ -1,4 +1,3 @@
-import { getPreferenceValues } from "@raycast/api";
 import {
   Configuration,
   OpenAIApi,
@@ -6,21 +5,26 @@ import {
   CreateChatCompletionRequest,
   CreateCompletionRequest,
 } from "openai";
-import { BotSettings, completionBotDefaults } from "./settings";
+import { BotSettings, getCompletionBotDefaults, getChatBotDefaults, getUserPreferences } from "./settings";
 
-const { apiKey } = getPreferenceValues<{ apiKey: string }>();
+const { apiKey } = getUserPreferences();
 const configuration = new Configuration({ apiKey });
 const openai = new OpenAIApi(configuration);
 
+const inputRe = /{{\s*input\s*}}/g;
+export const hasInputPlaceholder = (text: string) => inputRe.test(text);
+const sourcePromptWithInput = (text: string, input: string) => text.replace(inputRe, input);
+
 export const createCompletionBot = () => {
   const send = async (text: string, settings: BotSettings<"completion">) => {
-    const prompt = settings.prompt.includes("{{ input }}")
-      ? settings.prompt.replaceAll("{{ input }}", text)
-      : `${settings.prompt}\n\n${text}`;
+    const prompt = hasInputPlaceholder(settings.prompt)
+      ? sourcePromptWithInput(settings.prompt, text)
+      : `${settings.prompt}\n\n\n${text}`;
 
-    const model = settings.model || completionBotDefaults.model;
-    const temperature = settings.temperature || completionBotDefaults.temperature;
-    const max_tokens = settings.maxTokens || completionBotDefaults.maxTokens;
+    const defaults = getCompletionBotDefaults();
+    const model = settings.model || defaults.model;
+    const temperature = settings.temperature ?? defaults.temperature;
+    const max_tokens = settings.maxTokens ?? defaults.maxTokens;
 
     if (model === "text-davinci-003") {
       const payload = {
@@ -55,19 +59,21 @@ export const createCompletionBot = () => {
   };
 };
 
-const defaultRoleNames = {
-  assistant: "Hex",
-  user: "Artur",
-};
-
 export const createChatBot = () => {
+  const preferences = getUserPreferences();
+  const defaultRoleNames = {
+    assistant: preferences.assistantName,
+    user: preferences.userName,
+  };
+  const defaults = getChatBotDefaults();
+
   const conversationContext: ChatCompletionRequestMessage[] = [];
 
   const send = async (message: string, settings: BotSettings<"chat">) => {
     const payload: CreateChatCompletionRequest = {
       model: "gpt-3.5-turbo",
-      temperature: settings.temperature || completionBotDefaults.temperature,
-      max_tokens: settings.maxTokens || completionBotDefaults.maxTokens,
+      temperature: settings.temperature ?? defaults.temperature,
+      max_tokens: settings.maxTokens ?? defaults.maxTokens,
       messages: [
         ...settings.messages,
         ...conversationContext,

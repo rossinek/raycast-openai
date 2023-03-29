@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import ChatSettings from "./components/chat-settings";
 import { useChatBot } from "./hooks/use-chat-bot";
 import { ActiveState, getActiveState, setActiveState } from "./utils/active-settings";
-import { BotSettings, chatBotDefaults } from "./utils/settings";
+import { BotSettings, getChatBotDefaults } from "./utils/settings";
 
 type FormModel = {
   message: string;
@@ -28,7 +28,7 @@ export default ({ launchContext }: LaunchProps<{ launchContext: { state?: Active
   };
 
   useEffect(() => {
-    const settings: BotSettings<"chat"> = launchContext?.state?.settings || chatBotDefaults;
+    const settings: BotSettings<"chat"> = launchContext?.state?.settings || getChatBotDefaults();
     setActiveState<"chat">({ settings, preset: launchContext?.state?.preset });
     if (launchContext?.input) {
       handleSubmit({ message: launchContext.input });
