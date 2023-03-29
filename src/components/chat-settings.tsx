@@ -114,6 +114,26 @@ export default ({ state }: { state: ActiveState<"chat"> }) => {
 
   const defaults = getChatBotDefaults();
 
+  const addMessage = () => {
+    setFormModel({
+      ...formModel,
+      messages: [
+        ...formModel.messages,
+        {
+          role: formModel.messages.slice(-1)[0]?.role === "user" ? "assistant" : "user",
+          content: "",
+        },
+      ],
+    });
+  };
+
+  const removeMessage = () => {
+    setFormModel({
+      ...formModel,
+      messages: formModel.messages.slice(0, -1),
+    });
+  };
+
   return (
     <Form
       actions={
@@ -122,6 +142,10 @@ export default ({ state }: { state: ActiveState<"chat"> }) => {
           <Action title="Create new preset" onAction={createPreset} />
           {!!state.preset && (
             <Action title="Update preset" shortcut={{ modifiers: ["cmd"], key: "s" }} onAction={updatePreset} />
+          )}
+          <Action title="Add message" shortcut={{ modifiers: ["cmd"], key: "=" }} onAction={addMessage} />
+          {formModel.messages.length > 0 && (
+            <Action title="Remove message" shortcut={{ modifiers: ["cmd"], key: "-" }} onAction={removeMessage} />
           )}
         </ActionPanel>
       }
@@ -143,33 +167,6 @@ export default ({ state }: { state: ActiveState<"chat"> }) => {
           <Form.Dropdown.Item key={model} value={model} title={model} />
         ))}
       </Form.Dropdown>
-
-      <Form.TextArea
-        id="systemMessage"
-        title="System message"
-        value={formModel.systemMessage}
-        placeholder="No system message"
-        onChange={(value) => setFormModel({ ...formModel, systemMessage: value })}
-      />
-
-      {formModel.messages.map((message, index) => (
-        <Fragment key={`m_${index}`}>
-          <Form.Description text="–––" />
-          <Form.Dropdown id={`_role_${index}`} title="Role" value={message.role} onChange={onRoleChange(index)}>
-            <Form.Dropdown.Item value="user" title="user" />
-            <Form.Dropdown.Item value="assistant" title="assistant" />
-          </Form.Dropdown>
-          <Form.TextArea
-            id={`_content_${index}`}
-            title="Message"
-            value={message.content}
-            placeholder="Type message..."
-            error={!message.content ? "Message cannot be empty" : undefined}
-            onChange={onContentChange(index)}
-          />
-        </Fragment>
-      ))}
-      <Form.Description text="–––" />
 
       <Form.TextField
         id="temperature"
@@ -195,6 +192,35 @@ export default ({ state }: { state: ActiveState<"chat"> }) => {
           vMaxTokens.attrs.onChange?.(value);
         }}
       />
+
+      <Form.TextArea
+        id="systemMessage"
+        title="System message"
+        value={formModel.systemMessage}
+        placeholder="No system message"
+        onChange={(value) => setFormModel({ ...formModel, systemMessage: value })}
+      />
+
+      <Form.Description text="Messages" />
+
+      {formModel.messages.map((message, index) => (
+        <Fragment key={`m_${index}`}>
+          <Form.Dropdown id={`_role_${index}`} title="Role" value={message.role} onChange={onRoleChange(index)}>
+            <Form.Dropdown.Item value="user" title="user" />
+            <Form.Dropdown.Item value="assistant" title="assistant" />
+          </Form.Dropdown>
+          <Form.TextArea
+            id={`_content_${index}`}
+            title="Message"
+            value={message.content}
+            placeholder="Type message..."
+            error={!message.content ? "Message cannot be empty" : undefined}
+            onChange={onContentChange(index)}
+          />
+          {index < formModel.messages.length - 1 && <Form.Description text="  " />}
+        </Fragment>
+      ))}
+      <Form.Description text="Use actions to add/remove messages" />
     </Form>
   );
 };
