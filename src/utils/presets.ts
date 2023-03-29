@@ -1,9 +1,9 @@
 import { randomUUID } from "node:crypto";
-import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
-import { homedir as getHomeDir } from "node:os";
-import path from "node:path";
 
 import { BotSettings, BotType, getUserPreferences } from "./settings";
+import { backupPresets, getBackupFilesList, hasPresetsFile, readPresets, savePresets } from "./storage";
+
+export { readPresets } from "./storage";
 
 export type BotPreset<Type extends BotType = BotType> = {
   id: string;
@@ -14,20 +14,7 @@ export type BotPreset<Type extends BotType = BotType> = {
   settings: BotSettings<Type>;
 };
 
-const PRESETS_FILE_PATH = path.join(getHomeDir(), ".raycast-hex-presets.json");
-const BACKUPS_DIR_PATH = path.join(getHomeDir(), ".raycast-hex-backup");
 const getBackupFrequencyMs = () => 1000 * 60 * 60 * 24 * getUserPreferences().backupFrequency;
-
-const savePresets = (presets: BotPreset[]) => {
-  writeFileSync(PRESETS_FILE_PATH, JSON.stringify(presets), { flag: "w" });
-};
-
-export const readPresets = (): BotPreset[] => {
-  if (existsSync(PRESETS_FILE_PATH)) {
-    return JSON.parse(readFileSync(PRESETS_FILE_PATH).toString()) as BotPreset[];
-  }
-  return [];
-};
 
 export const createPreset = <Type extends BotType>(
   info: { name: string },
@@ -81,9 +68,8 @@ export const removePreset = (presetId: string): BotPreset[] => {
 };
 
 const shouldBackupPresets = () => {
-  if (!existsSync(BACKUPS_DIR_PATH)) return true;
   const dateRe = /presets-([^/]+)\.json$/;
-  const backups = readdirSync(BACKUPS_DIR_PATH)
+  const backups = getBackupFilesList()
     .map((f) => f.match(dateRe)?.[1])
     .filter(Boolean)
     .map((d) => new Date(d as string));
@@ -92,9 +78,6 @@ const shouldBackupPresets = () => {
 };
 
 const backupPresetsIfNeeded = () => {
-  if (!existsSync(PRESETS_FILE_PATH) || !shouldBackupPresets()) return;
-  if (!existsSync(BACKUPS_DIR_PATH)) {
-    mkdirSync(BACKUPS_DIR_PATH);
-  }
-  copyFileSync(PRESETS_FILE_PATH, path.join(BACKUPS_DIR_PATH, `presets-${new Date().toISOString()}.json`));
+  if (!hasPresetsFile() || !shouldBackupPresets()) return;
+  backupPresets(`presets-${new Date().toISOString()}.json`);
 };

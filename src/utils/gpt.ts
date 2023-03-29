@@ -115,7 +115,7 @@ const logChatRequest = (payload: CreateChatCompletionRequest) => {
   console.log(config);
   console.log("messages:");
   messages.forEach((message) => {
-    console.log(`  ${message.role}${message.name ? ` (${message.name})` : ""}): ${message.content}`);
+    console.log(`  ${message.role}${message.name ? ` (${message.name})` : ""}: ${message.content}`);
   });
   console.log("---");
 };

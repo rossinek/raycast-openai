@@ -51,22 +51,17 @@ export default ({ launchContext }: LaunchProps<{ launchContext: { state?: Active
       }
       isLoading={isLoading}
     >
-      {conversation.length > 0 && (
-        <>
-          <Form.TextArea
-            enableMarkdown
-            id="_markdown"
-            title="Markdown"
-            value={conversation
-              .map((item) => {
-                return `**${item.user}**:\n${item.message.trim()}`;
-              })
-              .join("\n\n")}
-            onChange={() => null}
-          />
-          <Form.Separator />
-        </>
-      )}
+      {conversation.map(({ message, user }, index) => (
+        <Form.TextArea
+          key={index}
+          enableMarkdown
+          id={`_m${index}`}
+          title={user}
+          value={message.trim()}
+          onChange={() => null}
+        />
+      ))}
+      {conversation.length > 0 && <Form.Separator />}
       <Form.TextArea
         id="message"
         value={message}
