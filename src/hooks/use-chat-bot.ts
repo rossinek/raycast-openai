@@ -5,10 +5,21 @@ import { BotSettings, getUserPreferences } from "../utils/settings";
 export const useChatBot = () => {
   const { userName, assistantName } = getUserPreferences();
   const [conversation, setConversation] = useState<Array<{ user: string; message: string }>>([]);
-  const bot = useMemo(() => createChatBot(), []);
+  const bot = useMemo(
+    () =>
+      createChatBot({
+        onChunk: (chunk) => {
+          setConversation((prev) => {
+            const last = prev[prev.length - 1];
+            return prev.slice(0, -1).concat([{ ...last, message: `${last.message}${chunk}` }]);
+          });
+        },
+      }),
+    []
+  );
   const send = async (message: string, settings: BotSettings<"chat">) => {
-    const answer = await bot.send(message, settings);
-    setConversation([...conversation, { user: userName, message }, { user: assistantName, message: answer }]);
+    setConversation([...conversation, { user: userName, message }, { user: assistantName, message: "" }]);
+    await bot.send(message, settings);
   };
   return { conversation, send };
 };

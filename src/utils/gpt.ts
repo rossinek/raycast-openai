@@ -15,7 +15,12 @@ const inputRe = /{{\s*input\s*}}/g;
 export const hasInputPlaceholder = (text: string) => inputRe.test(text);
 const sourcePromptWithInput = (text: string, input: string) => text.replace(inputRe, input);
 
-export const createCompletionBot = () => {
+export const createCompletionBot = (
+  config: {
+    onChunk?: (chunk: string) => void;
+    onComplete?: (fullText: string) => void;
+  } = {}
+) => {
   const send = async (text: string, settings: BotSettings<"completion">) => {
     const prompt = hasInputPlaceholder(settings.prompt)
       ? sourcePromptWithInput(settings.prompt, text)
@@ -34,9 +39,10 @@ export const createCompletionBot = () => {
         prompt,
       };
       logCompletionRequest(payload);
-      const response = await openai.createCompletion(payload);
-      console.log(response.data);
-      return response.data.choices?.[0]?.text?.trim() || "(no response)";
+      const response = await createStreamCompletion(payload, config);
+      // const response = await openai.createCompletion(payload);
+      // return response.data.choices?.[0]?.text?.trim() || "(no response)";
+      return response || "(no response)";
     }
     const payload = {
       model,
@@ -49,9 +55,9 @@ export const createCompletionBot = () => {
         },
       ],
     };
-    const response = await openai.createChatCompletion(payload);
     logChatRequest(payload);
-    return response.data.choices?.[0]?.message?.content?.trim() || "(no response)";
+    const response = await createStreamChatCompletion(payload, config);
+    return response || "(no response)";
   };
 
   return {
@@ -59,7 +65,12 @@ export const createCompletionBot = () => {
   };
 };
 
-export const createChatBot = () => {
+export const createChatBot = (
+  config: {
+    onChunk?: (chunk: string) => void;
+    onComplete?: (fullText: string) => void;
+  } = {}
+) => {
   const preferences = getUserPreferences();
   const defaultRoleNames = {
     assistant: preferences.assistantName,
@@ -85,11 +96,9 @@ export const createChatBot = () => {
     };
 
     logChatRequest(payload);
-    const response = await openai.createChatCompletion(payload);
-
-    const answer = response.data.choices?.[0]?.message;
-    const content = answer?.content || "Sorry, I'm not able to answer.";
-    conversationContext.push({ role: "user", content: message }, { role: answer?.role || "assistant", content });
+    const answer = await createStreamChatCompletion(payload, config);
+    const content = answer || "Sorry, I'm not able to answer.";
+    conversationContext.push({ role: "user", content: message }, { role: "assistant", content });
     return content;
   };
 
@@ -118,4 +127,125 @@ const logChatRequest = (payload: CreateChatCompletionRequest) => {
     console.log(`  ${message.role}${message.name ? ` (${message.name})` : ""}: ${message.content}`);
   });
   console.log("---");
+};
+
+// ---------------
+
+const asStreamResponse = <
+  T extends Awaited<ReturnType<typeof openai.createCompletion> | ReturnType<typeof openai.createChatCompletion>>
+>(
+  res: T
+) =>
+  res as unknown as Omit<T, "data"> & {
+    data: T["data"] & { on: (event: "data", callback: (data: Buffer) => void) => void };
+  };
+
+const createOnDataCallback = (config: {
+  parser: (message: string) => string;
+  onChunk?: (chunk: string) => void;
+  onComplete?: (fullText: string) => void;
+}) => {
+  let fullText = "";
+  return (data: Buffer) => {
+    const lines = data
+      .toString()
+      .split("\n")
+      .filter((line) => line.trim() !== "");
+    let chunkText = "";
+    for (const line of lines) {
+      const message = line.replace(/^data: /, "");
+      if (message === "[DONE]") {
+        config.onChunk?.(chunkText);
+        config.onComplete?.(fullText);
+        return;
+      }
+      try {
+        const parsed = config.parser(message);
+        chunkText += parsed;
+        fullText += parsed;
+      } catch (error) {
+        console.error("Could not JSON parse stream message", message, error);
+      }
+    }
+    config.onChunk?.(chunkText);
+  };
+};
+
+const handleStreamRequest = async (
+  _res: ReturnType<typeof openai.createCompletion> | ReturnType<typeof openai.createChatCompletion>,
+  parser: (message: string) => string,
+  config: {
+    onChunk?: (chunk: string) => void;
+    onComplete?: (fullText: string) => void;
+  } = {}
+) => {
+  // eslint-disable-next-line no-async-promise-executor
+  return new Promise<string>(async (resolve, reject) => {
+    try {
+      const res = asStreamResponse(await _res);
+
+      res.data.on(
+        "data",
+        createOnDataCallback({
+          parser,
+          onChunk: config.onChunk,
+          onComplete: (fullText) => {
+            config.onComplete?.(fullText);
+            resolve(fullText);
+          },
+        })
+      );
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (error: any) {
+      reject(error);
+      if (error?.response?.status) {
+        console.error(error.response.status, error.message);
+        error.response.data.on("data", (data: Buffer) => {
+          const message = data.toString();
+          try {
+            const parsed = JSON.parse(message);
+            console.error("An error occurred during OpenAI request: ", parsed);
+          } catch (error) {
+            console.error("An error occurred during OpenAI request: ", message);
+          }
+        });
+      } else {
+        console.error("An error occurred during OpenAI request", error);
+      }
+    }
+  });
+};
+
+const createStreamCompletion = async (
+  payload: CreateCompletionRequest,
+  config: {
+    onChunk?: (chunk: string) => void;
+    onComplete?: (fullText: string) => void;
+  } = {}
+) => {
+  return handleStreamRequest(
+    openai.createCompletion({ ...payload, stream: true }, { responseType: "stream" }),
+    (message) => {
+      const parsed = JSON.parse(message);
+      return parsed.choices?.[0]?.text || "";
+    },
+    config
+  );
+};
+
+const createStreamChatCompletion = async (
+  payload: CreateChatCompletionRequest,
+  config: {
+    onChunk?: (chunk: string) => void;
+    onComplete?: (fullText: string) => void;
+  } = {}
+) => {
+  return handleStreamRequest(
+    openai.createChatCompletion({ ...payload, stream: true }, { responseType: "stream" }),
+    (message) => {
+      const parsed = JSON.parse(message);
+      return parsed.choices?.[0]?.delta?.content || "";
+    },
+    config
+  );
 };

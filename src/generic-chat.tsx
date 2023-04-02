@@ -1,4 +1,4 @@
-import { Form, ActionPanel, Action, LaunchProps, useNavigation } from "@raycast/api";
+import { Form, ActionPanel, Action, LaunchProps, useNavigation, showToast } from "@raycast/api";
 import { useEffect, useRef, useState } from "react";
 import ChatSettings from "./components/chat-settings";
 import { useChatBot } from "./hooks/use-chat-bot";
@@ -21,10 +21,12 @@ export default ({ launchContext }: LaunchProps<{ launchContext: { state?: Active
 
   const handleSubmit = async (values: FormModel) => {
     setIsLoading(true);
-    const { settings } = await getActiveState("chat");
-    await send(values.message, settings);
-    setIsLoading(false);
+    const message = values.message;
     messageTextAreaRef.current?.reset();
+    const { settings } = await getActiveState("chat");
+    await send(message, settings);
+    setIsLoading(false);
+    showToast({ title: "Done" });
   };
 
   useEffect(() => {
