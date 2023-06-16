@@ -19,7 +19,12 @@ export const useChatBot = () => {
   );
   const send = async (message: string, settings: BotSettings<"chat">) => {
     setConversation([...conversation, { user: userName, message }, { user: assistantName, message: "" }]);
-    await bot.send(message, settings);
+    try {
+      await bot.send(message, settings);
+    } catch (error) {
+      setConversation((prev) => prev.slice(0, -2));
+      throw error;
+    }
   };
   return { conversation, send };
 };

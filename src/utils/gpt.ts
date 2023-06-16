@@ -6,6 +6,7 @@ import {
   CreateCompletionRequest,
 } from "openai";
 import { BotSettings, getCompletionBotDefaults, getChatBotDefaults, getUserPreferences } from "./settings";
+import type { IncomingMessage } from "node:http";
 
 const { apiKey } = getUserPreferences();
 const configuration = new Configuration({ apiKey });
@@ -80,7 +81,7 @@ export const createChatBot = (
 
   const conversationContext: ChatCompletionRequestMessage[] = [];
 
-  const send = async (message: string, settings: BotSettings<"chat">) => {
+  const send = async (message: string, settings: BotSettings<"chat">): Promise<string> => {
     const payload: CreateChatCompletionRequest = {
       model: settings.model || defaults.model || "gpt-3.5-turbo",
       temperature: settings.temperature ?? defaults.temperature,
@@ -97,7 +98,7 @@ export const createChatBot = (
 
     logChatRequest(payload);
     const answer = await createStreamChatCompletion(payload, config);
-    const content = answer || "Sorry, I'm not able to answer.";
+    const content = answer || "(no answer)";
     conversationContext.push({ role: "user", content: message }, { role: "assistant", content });
     return content;
   };
@@ -170,6 +171,41 @@ const createOnDataCallback = (config: {
     config.onChunk?.(chunkText);
   };
 };
+class StreamRequestError extends Error {
+  cause?: Error;
+  constructor(message: string, cause?: Error) {
+    super(message || "Stream request error");
+    this.cause = cause;
+  }
+}
+
+const parseStreamError = (error: any, timeout = 300): Promise<Error> => {
+  return new Promise((_resolve) => {
+    let resolved = false;
+    const resolve = (err?: StreamRequestError) => {
+      if (resolved) return;
+      resolved = true;
+      _resolve(err || new StreamRequestError(error?.message || "", error));
+    };
+    setTimeout(resolve, timeout);
+    if (!error?.response?.status) {
+      console.error("[stream request error]", error?.message);
+      resolve();
+      return;
+    }
+    error.response.data.on("data", (data: Buffer) => {
+      const message = data.toString();
+      try {
+        const parsed = JSON.parse(message);
+        console.error("[stream request error]", parsed.error.message);
+        resolve(new StreamRequestError(parsed.error.message, error));
+      } catch {
+        console.error("[stream request error]", message);
+        resolve(new StreamRequestError(message, error));
+      }
+    });
+  });
+};
 
 const handleStreamRequest = async (
   _res: ReturnType<typeof openai.createCompletion> | ReturnType<typeof openai.createChatCompletion>,
@@ -183,7 +219,6 @@ const handleStreamRequest = async (
   return new Promise<string>(async (resolve, reject) => {
     try {
       const res = asStreamResponse(await _res);
-
       res.data.on(
         "data",
         createOnDataCallback({
@@ -197,21 +232,7 @@ const handleStreamRequest = async (
       );
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
-      reject(error);
-      if (error?.response?.status) {
-        console.error(error.response.status, error.message);
-        error.response.data.on("data", (data: Buffer) => {
-          const message = data.toString();
-          try {
-            const parsed = JSON.parse(message);
-            console.error("An error occurred during OpenAI request: ", parsed);
-          } catch (error) {
-            console.error("An error occurred during OpenAI request: ", message);
-          }
-        });
-      } else {
-        console.error("An error occurred during OpenAI request", error);
-      }
+      reject(await parseStreamError(error));
     }
   });
 };

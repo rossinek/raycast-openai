@@ -8,6 +8,7 @@ import {
   closeMainWindow,
   PopToRootType,
   useNavigation,
+  Toast,
 } from "@raycast/api";
 import { useEffect, useRef, useState } from "react";
 import CompletionSettings from "./components/completion-settings";
@@ -34,10 +35,15 @@ export default ({
   const handleSubmit = async (values: FormModel) => {
     setIsLoading(true);
     const { settings } = await getActiveState("completion");
-    await send(values.text, settings);
+    try {
+      await send(values.text, settings);
+      responseTextAreaRef.current?.focus();
+      showToast({ title: "Done" });
+    } catch (error: any) {
+      setResponse("(error)");
+      showToast({ style: Toast.Style.Failure, title: "Error", message: `${error?.message}` });
+    }
     setIsLoading(false);
-    responseTextAreaRef.current?.focus();
-    showToast({ title: "Done" });
   };
 
   useEffect(() => {
